@@ -125,8 +125,8 @@
             <h3>🔐 Login or Create Account</h3>
             <input type="email" id="email" placeholder="Email address">
             <input type="password" id="password" placeholder="Password">
-            <button class="btn-success" onclick="window.signup()">Create Account</button>
-            <button class="btn-primary" onclick="window.login()">Login</button>
+            <button class="btn-success" id="signupBtn">Create Account</button>
+            <button class="btn-primary" id="loginBtn">Login</button>
         </div>
 
         <!-- To-Do List Section (hidden until login) -->
@@ -134,10 +134,10 @@
             <h3>📝 My Tasks</h3>
             <div class="input-group">
                 <input type="text" id="taskInput" placeholder="Enter a new task...">
-                <button class="btn-primary" onclick="window.addTask()">Add Task</button>
+                <button class="btn-primary" id="addTaskBtn">Add Task</button>
             </div>
             <div id="taskList"></div>
-            <button class="btn-danger" onclick="window.logout()" style="margin-top: 15px; width: 100%;">Logout</button>
+            <button class="btn-danger" id="logoutBtn" style="margin-top: 15px; width: 100%;">Logout</button>
         </div>
 
         <div class="date">
@@ -145,217 +145,238 @@
         </div>
     </div>
 
-    <script>
-        // ALL CODE IN ONE PLACE - NO DUPLICATES 1
-        (function() {
-            // Supabase credentials
-            const SUPABASE_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdG5ub2NnZmpocmxvZmdiamRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2OTQ0MTUsImV4cCI6MjA5NjI3MDQxNX0.XAx-5LlSQsg_hxb4JqDzk5iLNMOW-FziSegWJhCsYis';
-            
-            // Create Supabase client
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            
-            let currentUser = null;
-            let tasks = [];
-
-            function showMessage(text, type) {
-                const msgDiv = document.getElementById('message');
-                if (!msgDiv) return;
-                msgDiv.textContent = text;
-                msgDiv.className = `message ${type}`;
-                msgDiv.style.display = 'block';
-                setTimeout(() => {
-                    msgDiv.style.display = 'none';
-                }, 3000);
-            }
-
-            function showTodoSection(show) {
-                const todoSection = document.getElementById('todoSection');
-                const authSection = document.getElementById('authSection');
-                if (!todoSection || !authSection) return;
-                if (show) {
-                    todoSection.style.display = 'block';
-                    authSection.style.display = 'none';
-                } else {
-                    todoSection.style.display = 'none';
-                    authSection.style.display = 'block';
-                }
-            }
-
-            async function loadTasks() {
-                if (!currentUser) return;
-                
-                const { data, error } = await supabase
-                    .from('tasks')
-                    .select('*')
-                    .eq('user_id', currentUser.id);
-                
-                if (error) {
-                    console.error('Error loading tasks:', error);
-                    showMessage('Could not load tasks: ' + error.message, 'error');
-                } else {
-                    tasks = data || [];
-                    displayTasks();
-                }
-            }
-
-            function displayTasks() {
-                const taskListDiv = document.getElementById('taskList');
-                if (!taskListDiv) return;
-                
-                if (tasks.length === 0) {
-                    taskListDiv.innerHTML = '<p style="color: gray; text-align: center;">✨ No tasks yet. Add one above!</p>';
-                    return;
-                }
-                
-                let html = '';
-                for (const task of tasks) {
-                    html += `
-                        <div class="task-item">
-                            <span class="task-text ${task.completed ? 'completed' : ''}" onclick="window.toggleTask('${task.id}', ${task.completed})">
-                                ${task.completed ? '✅' : '⬜'} ${escapeHtml(task.text)}
-                            </span>
-                            <button class="delete-btn" onclick="window.deleteTask('${task.id}')">Delete</button>
-                        </div>
-                    `;
-                }
-                taskListDiv.innerHTML = html;
-            }
-
-            window.addTask = async function() {
-                const input = document.getElementById('taskInput');
-                const text = input.value.trim();
-                if (!text) {
-                    showMessage('Please enter a task', 'error');
-                    return;
-                }
-                
-                const { data, error } = await supabase
-                    .from('tasks')
-                    .insert([{ text: text, completed: false, user_id: currentUser.id }])
-                    .select();
-                
-                if (error) {
-                    console.error('Error adding task:', error);
-                    showMessage('Failed to add task: ' + error.message, 'error');
-                } else if (data) {
-                    tasks.push(data[0]);
-                    displayTasks();
-                    input.value = '';
-                    showMessage('Task added!', 'success');
-                }
-            };
-
-            window.deleteTask = async function(taskId) {
-                const { error } = await supabase
-                    .from('tasks')
-                    .delete()
-                    .eq('id', taskId);
-                
-                if (error) {
-                    console.error('Error deleting task:', error);
-                    showMessage('Failed to delete task', 'error');
-                } else {
-                    tasks = tasks.filter(task => task.id !== taskId);
-                    displayTasks();
-                    showMessage('Task deleted', 'success');
-                }
-            };
-
-            window.toggleTask = async function(taskId, currentStatus) {
-                const { error } = await supabase
-                    .from('tasks')
-                    .update({ completed: !currentStatus })
-                    .eq('id', taskId);
-                
-                if (error) {
-                    console.error('Error toggling task:', error);
-                    showMessage('Failed to update task', 'error');
-                } else {
-                    const task = tasks.find(t => t.id === taskId);
-                    if (task) task.completed = !currentStatus;
-                    displayTasks();
-                }
-            };
-
-            window.signup = async function() {
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-                
-                if (!email || !password) {
-                    showMessage('Please enter both email and password', 'error');
-                    return;
-                }
-                
-                const { data, error } = await supabase.auth.signUp({ email, password });
-                if (error) {
-                    console.error('Signup error:', error);
-                    showMessage('Signup failed: ' + error.message, 'error');
-                } else {
-                    showMessage('Account created! Please login with your email and password.', 'success');
-                    document.getElementById('email').value = '';
-                    document.getElementById('password').value = '';
-                }
-            };
-
-            window.login = async function() {
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-                
-                if (!email || !password) {
-                    showMessage('Please enter both email and password', 'error');
-                    return;
-                }
-                
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) {
-                    console.error('Login error:', error);
-                    showMessage('Login failed: ' + error.message, 'error');
-                } else {
-                    currentUser = data.user;
-                    showTodoSection(true);
-                    await loadTasks();
-                    showMessage('Welcome back, ' + currentUser.email + '!', 'success');
-                    document.getElementById('email').value = '';
-                    document.getElementById('password').value = '';
-                }
-            };
-
-            window.logout = async function() {
-                await supabase.auth.signOut();
-                currentUser = null;
-                tasks = [];
-                displayTasks();
-                showTodoSection(false);
-                showMessage('Logged out successfully', 'success');
-            };
-
-            async function checkUser() {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    currentUser = user;
-                    showTodoSection(true);
-                    await loadTasks();
-                } else {
-                    showTodoSection(false);
-                }
-            }
-
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                });
-            }
-
-            // Start the app
-            checkUser();
-        })();
-    </script>
-    <!-- Load Supabase SDK only once, at the very end -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // ===== REPLACE WITH YOUR NEW SUPABASE CREDENTIALS =====
+        const SUPABASE_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdG5ub2NnZmpocmxvZmdiamRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2OTQ0MTUsImV4cCI6MjA5NjI3MDQxNX0.XAx-5LlSQsg_hxb4JqDzk5iLNMOW-FziSegWJhCsYis'; // Your new anon key starting with eyJ
+        
+        console.log('Supabase library loaded?', typeof supabase !== 'undefined');
+        
+        // Initialize Supabase client
+        let supabaseClient = null;
+        if (typeof supabase !== 'undefined') {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log('Supabase client created');
+        } else {
+            console.error('Supabase library not loaded!');
+            document.getElementById('message').innerHTML = 'ERROR: Supabase library failed to load';
+            document.getElementById('message').className = 'message error';
+            document.getElementById('message').style.display = 'block';
+        }
+        
+        let currentUser = null;
+        let tasks = [];
+
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = `message ${type}`;
+            msgDiv.style.display = 'block';
+            setTimeout(() => {
+                msgDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function showTodoSection(show) {
+            const todoSection = document.getElementById('todoSection');
+            const authSection = document.getElementById('authSection');
+            if (show) {
+                todoSection.style.display = 'block';
+                authSection.style.display = 'none';
+            } else {
+                todoSection.style.display = 'none';
+                authSection.style.display = 'block';
+            }
+        }
+
+        async function loadTasks() {
+            if (!currentUser || !supabaseClient) return;
+            
+            const { data, error } = await supabaseClient
+                .from('tasks')
+                .select('*')
+                .eq('user_id', currentUser.id);
+            
+            if (error) {
+                console.error('Error loading tasks:', error);
+                showMessage('Could not load tasks: ' + error.message, 'error');
+            } else {
+                tasks = data || [];
+                displayTasks();
+            }
+        }
+
+        function displayTasks() {
+            const taskListDiv = document.getElementById('taskList');
+            if (!taskListDiv) return;
+            
+            if (tasks.length === 0) {
+                taskListDiv.innerHTML = '<p style="color: gray; text-align: center;">✨ No tasks yet. Add one above!</p>';
+                return;
+            }
+            
+            let html = '';
+            for (const task of tasks) {
+                html += `
+                    <div class="task-item">
+                        <span class="task-text ${task.completed ? 'completed' : ''}" data-id="${task.id}" data-completed="${task.completed}">
+                            ${task.completed ? '✅' : '⬜'} ${escapeHtml(task.text)}
+                        </span>
+                        <button class="delete-btn" data-id="${task.id}">Delete</button>
+                    </div>
+                `;
+            }
+            taskListDiv.innerHTML = html;
+            
+            // Add event listeners to dynamically created elements
+            document.querySelectorAll('.task-text').forEach(el => {
+                el.addEventListener('click', () => toggleTask(el.dataset.id, el.dataset.completed === 'true'));
+            });
+            document.querySelectorAll('.delete-btn').forEach(el => {
+                el.addEventListener('click', () => deleteTask(el.dataset.id));
+            });
+        }
+
+        async function addTask() {
+            const input = document.getElementById('taskInput');
+            const text = input.value.trim();
+            if (!text) {
+                showMessage('Please enter a task', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabaseClient
+                .from('tasks')
+                .insert([{ text: text, completed: false, user_id: currentUser.id }])
+                .select();
+            
+            if (error) {
+                console.error('Error adding task:', error);
+                showMessage('Failed to add task: ' + error.message, 'error');
+            } else if (data) {
+                tasks.push(data[0]);
+                displayTasks();
+                input.value = '';
+                showMessage('Task added!', 'success');
+            }
+        }
+
+        async function deleteTask(taskId) {
+            const { error } = await supabaseClient
+                .from('tasks')
+                .delete()
+                .eq('id', taskId);
+            
+            if (error) {
+                console.error('Error deleting task:', error);
+                showMessage('Failed to delete task', 'error');
+            } else {
+                tasks = tasks.filter(task => task.id !== taskId);
+                displayTasks();
+                showMessage('Task deleted', 'success');
+            }
+        }
+
+        async function toggleTask(taskId, currentStatus) {
+            const { error } = await supabaseClient
+                .from('tasks')
+                .update({ completed: !currentStatus })
+                .eq('id', taskId);
+            
+            if (error) {
+                console.error('Error toggling task:', error);
+                showMessage('Failed to update task', 'error');
+            } else {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) task.completed = !currentStatus;
+                displayTasks();
+            }
+        }
+
+        async function signup() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showMessage('Please enter both email and password', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) {
+                console.error('Signup error:', error);
+                showMessage('Signup failed: ' + error.message, 'error');
+            } else {
+                showMessage('Account created! Please login with your email and password.', 'success');
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showMessage('Please enter both email and password', 'error');
+                return;
+            }
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                console.error('Login error:', error);
+                showMessage('Login failed: ' + error.message, 'error');
+            } else {
+                currentUser = data.user;
+                showTodoSection(true);
+                await loadTasks();
+                showMessage('Welcome back, ' + currentUser.email + '!', 'success');
+                document.getElementById('email').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            currentUser = null;
+            tasks = [];
+            displayTasks();
+            showTodoSection(false);
+            showMessage('Logged out successfully', 'success');
+        }
+
+        async function checkUser() {
+            if (!supabaseClient) return;
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) {
+                currentUser = user;
+                showTodoSection(true);
+                await loadTasks();
+            } else {
+                showTodoSection(false);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Set up event listeners after page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('signupBtn').addEventListener('click', signup);
+            document.getElementById('loginBtn').addEventListener('click', login);
+            document.getElementById('addTaskBtn').addEventListener('click', addTask);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            checkUser();
+        });
+    </script>
 </body>
 </html>
