@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pricing - Abdelatif's To-Do List</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 { color: #1a73e8; text-align: center; }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .nav-links a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #1a73e8;
+        }
+        .pricing-container {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .pricing-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            flex: 1;
+            min-width: 250px;
+            transition: transform 0.3s;
+        }
+        .pricing-card:hover {
+            transform: translateY(-5px);
+        }
+        .pricing-card.premium {
+            border: 2px solid #1a73e8;
+            background: #f0f7ff;
+        }
+        .price {
+            font-size: 36px;
+            font-weight: bold;
+            color: #1a73e8;
+            margin: 20px 0;
+        }
+        .features {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+        .features li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin-top: 20px;
+        }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="nav-links">
+            <a href="index.html">🏠 Dashboard</a>
+            <a href="pricing.html">💰 Pricing</a>
+            <a href="progress.html">📈 Progress</a>
+            <a href="projects.html">🚀 Projects</a>
+            <a href="contact.html">✉️ Contact</a>
+        </div>
+
+        <h1>💰 Simple, Transparent Pricing</h1>
+        <p style="text-align: center;">Start free, upgrade when you need more.</p>
+
+        <div class="pricing-container">
+            <!-- Free Plan -->
+            <div class="pricing-card">
+                <h2>Free</h2>
+                <div class="price">$0</div>
+                <p>Forever free</p>
+                <ul class="features">
+                    <li>✅ Up to 10 active tasks</li>
+                    <li>✅ Basic categories (Work/Personal/Shopping)</li>
+                    <li>✅ Due dates</li>
+                    <li>❌ Unlimited tasks</li>
+                    <li>❌ Advanced categories</li>
+                    <li>❌ Priority support</li>
+                </ul>
+                <a href="index.html" class="btn btn-secondary">Get Started</a>
+            </div>
+
+            <!-- Premium Plan -->
+            <div class="pricing-card premium">
+                <h2>Premium</h2>
+                <div class="price">$5<span style="font-size: 14px;">/month</span></div>
+                <p>Best for power users</p>
+                <ul class="features">
+                    <li>✅ Unlimited tasks</li>
+                    <li>✅ All categories + custom tags</li>
+                    <li>✅ Due dates with reminders</li>
+                    <li>✅ File attachments</li>
+                    <li>✅ Priority support</li>
+                    <li>✅ Export to CSV</li>
+                </ul>
+                <button class="btn btn-primary" id="upgradeBtn">Upgrade Now</button>
+            </div>
+        </div>
+
+        <div class="date" style="margin-top: 30px;">
+            Day 14 - Ready for Payments | 30-Day Money-Back Guarantee
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in (optional)
+        // This will be connected to Stripe in the next step
+        
+        document.getElementById('upgradeBtn').addEventListener('click', function() {
+            alert('Stripe integration coming soon! For now, this is your premium upgrade button.');
+            // In the next step, this will redirect to Stripe Checkout
+        });
+    </script>
+</body>
+</html>
