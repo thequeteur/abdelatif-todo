@@ -308,6 +308,8 @@
                 showMessage('Please enter a task', 'error');
                 return;
             }
+
+            if (!(await canAddTask())) return;
             
             const { data, error } = await supabaseClient
                 .from('tasks')
@@ -330,6 +332,30 @@
                 document.getElementById('dueDateInput').value = '';
                 showMessage('Task added!', 'success');
             }
+        }
+
+        async function canAddTask() {
+                if (!currentUser) return false;
+                
+                // Check if user is premium (you'll set this after Stripe webhook)
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('is_premium')
+                    .eq('id', currentUser.id)
+                    .single();
+                
+                if (error) {
+                    console.error('Error checking premium status:', error);
+                    return false;
+                }
+                
+                const isPremium = data?.is_premium || false;
+                
+                if (!isPremium && tasks.length >= 10) {
+                    showMessage('Free users can only have 10 tasks. Upgrade to Premium for unlimited tasks!', 'error');
+                    return false;
+                }
+                return true;
         }
 
         async function deleteTask(taskId) {
