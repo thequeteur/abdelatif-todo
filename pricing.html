@@ -17,6 +17,16 @@
             margin: 0 auto;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
+        h1 { color: #1a73e8; text-align: center; }
+        .nav-links {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .nav-links a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #1a73e8;
+        }
         .pricing-container {
             display: flex;
             gap: 30px;
@@ -30,6 +40,10 @@
             text-align: center;
             flex: 1;
             min-width: 250px;
+            transition: transform 0.3s;
+        }
+        .pricing-card:hover {
+            transform: translateY(-5px);
         }
         .pricing-card.premium {
             border: 2px solid #1a73e8;
@@ -41,6 +55,15 @@
             color: #1a73e8;
             margin: 20px 0;
         }
+        .features {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+        }
+        .features li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
         .btn {
             display: inline-block;
             padding: 12px 30px;
@@ -49,102 +72,180 @@
             margin-top: 20px;
             border: none;
             cursor: pointer;
+            font-size: 16px;
         }
         .btn-primary { background: #1a73e8; color: white; }
-        #statusMsg {
+        .btn-secondary { background: #6c757d; color: white; }
+        .status-msg {
             margin-top: 20px;
-            padding: 10px;
+            padding: 15px;
+            border-radius: 8px;
             display: none;
+        }
+        .status-msg.success { background: #e8f5e9; color: #2e7d32; display: block; }
+        .status-msg.error { background: #ffebee; color: #c62828; display: block; }
+        .status-msg.info { background: #e3f2fd; color: #0d47a1; display: block; }
+        .date {
+            text-align: center;
+            font-size: 12px;
+            color: gray;
+            margin-top: 30px;
         }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>💰 Pricing</h1>
-        
+        <div class="nav-links">
+            <a href="index.html">🏠 Dashboard</a>
+            <a href="pricing.html">💰 Pricing</a>
+            <a href="progress.html">📈 Progress</a>
+            <a href="projects.html">🚀 Projects</a>
+            <a href="contact.html">✉️ Contact</a>
+        </div>
+
+        <h1>💰 Simple, Transparent Pricing</h1>
+        <p style="text-align: center;">Start free, upgrade when you need more.</p>
+
         <div class="pricing-container">
+            <!-- Free Plan -->
             <div class="pricing-card">
                 <h2>Free</h2>
                 <div class="price">$0</div>
-                <p>Basic features, 10 tasks</p>
-                <p>✅ Categories</p>
-                <p>✅ Due dates</p>
-                <p>❌ Unlimited tasks</p>
+                <p>Forever free</p>
+                <ul class="features">
+                    <li>✅ Up to 10 active tasks</li>
+                    <li>✅ Basic categories</li>
+                    <li>✅ Due dates</li>
+                    <li>❌ Unlimited tasks</li>
+                    <li>❌ Premium support</li>
+                </ul>
+                <a href="index.html" class="btn btn-secondary">Get Started</a>
             </div>
-            
+
+            <!-- Premium Plan -->
             <div class="pricing-card premium">
                 <h2>Premium</h2>
-                <div class="price">$5<span style="font-size:14px;">/month</span></div>
-                <p>Unlimited everything</p>
-                <p>✅ Unlimited tasks</p>
-                <p>✅ Premium support</p>
-                <p>✅ Export data</p>
+                <div class="price">$5<span style="font-size: 14px;">/month</span></div>
+                <p>Best for power users</p>
+                <ul class="features">
+                    <li>✅ Unlimited tasks</li>
+                    <li>✅ All categories + custom tags</li>
+                    <li>✅ Due dates with reminders</li>
+                    <li>✅ Priority support</li>
+                    <li>✅ Export to CSV</li>
+                </ul>
                 <button class="btn btn-primary" id="upgradeBtn">Upgrade Now</button>
             </div>
         </div>
-        
-        <div id="statusMsg"></div>
+
+        <div id="statusMsg" class="status-msg"></div>
+
+        <div class="date">
+            Day 14 - Stripe Payments | 30-Day Money-Back Guarantee
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        // ===== REPLACE WITH YOUR SUPABASE CREDENTIALS =====
+        const SUPABASE_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co';
         const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // ===== REPLACE WITH YOUR STRIPE PRICE ID =====
+        const STRIPE_PRICE_ID = 'price_YOUR_ACTUAL_PRICE_ID_HERE';
+        
+        // ===== EDGE FUNCTION URL (YOUR DEPLOYED FUNCTION) =====
+        const EDGE_FUNCTION_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co/functions/v1/create-checkout';
+        
+        let currentUser = null;
+
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('statusMsg');
+            msgDiv.textContent = text;
+            msgDiv.className = `status-msg ${type}`;
+            msgDiv.style.display = 'block';
+        }
 
         async function checkUser() {
             const { data: { user } } = await supabase.auth.getUser();
+            currentUser = user;
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            
             if (!user) {
-                document.getElementById('statusMsg').innerHTML = 
-                    'Please <a href="index.html">log in</a> to upgrade';
-                document.getElementById('statusMsg').style.display = 'block';
-                document.getElementById('upgradeBtn').disabled = true;
+                showMessage('Please <a href="index.html" style="color: #1a73e8;">log in</a> to upgrade.', 'info');
+                upgradeBtn.disabled = true;
+                upgradeBtn.textContent = 'Login to Upgrade';
+            } else {
+                // Check if user is already premium
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('is_premium')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (!error && data?.is_premium) {
+                    showMessage('🎉 You are already a Premium member!', 'success');
+                    upgradeBtn.textContent = 'Already Premium';
+                    upgradeBtn.disabled = true;
+                } else {
+                    upgradeBtn.disabled = false;
+                    upgradeBtn.textContent = 'Upgrade Now';
+                }
             }
-            return user;
         }
 
         document.getElementById('upgradeBtn').addEventListener('click', async () => {
-            const user = await checkUser();
-            if (!user) return;
+            if (!currentUser) {
+                showMessage('Please log in first.', 'error');
+                return;
+            }
 
             const upgradeBtn = document.getElementById('upgradeBtn');
             upgradeBtn.disabled = true;
             upgradeBtn.textContent = 'Processing...';
 
             try {
-                const response = await fetch('https://totnnocgfjhrlofgbjdr.supabase.co/functions/v1/create-checkout', {
+                const response = await fetch(EDGE_FUNCTION_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        userId: user.id,
-                        email: user.email,
-                        priceId: 'price_1TgL0SRu8RgSD6da4snS1ooB', // YOUR STRIPE PRICE ID HERE
+                        userId: currentUser.id,
+                        email: currentUser.email,
+                        priceId: STRIPE_PRICE_ID,
                         successUrl: window.location.origin + '/pricing.html?success=true',
                         cancelUrl: window.location.origin + '/pricing.html?canceled=true'
                     })
                 });
 
-                const { url, error } = await response.json();
-                if (error) throw new Error(error);
-                if (url) window.location.href = url;
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error('No checkout URL returned');
+                }
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.error('Error:', error);
+                showMessage('Error: ' + error.message, 'error');
                 upgradeBtn.disabled = false;
                 upgradeBtn.textContent = 'Upgrade Now';
             }
         });
 
-        checkUser();
-        
-        if (window.location.search.includes('success=true')) {
-            document.getElementById('statusMsg').innerHTML = 
-                '✅ Payment successful! Your account has been upgraded.';
-            document.getElementById('statusMsg').style.cssText = 'background:#e8f5e9; color:#2e7d32; display:block;';
-        } else if (window.location.search.includes('canceled=true')) {
-            document.getElementById('statusMsg').innerHTML = 
-                'Payment cancelled. No charges were made.';
-            document.getElementById('statusMsg').style.cssText = 'background:#fff3e0; color:#e65100; display:block;';
-        }
+        // Check for payment status in URL
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('success') === 'true') {
+                showMessage('✅ Payment successful! Your account has been upgraded.', 'success');
+                document.getElementById('upgradeBtn').textContent = 'Already Premium';
+                document.getElementById('upgradeBtn').disabled = true;
+            } else if (params.get('canceled') === 'true') {
+                showMessage('Payment cancelled. No charges were made.', 'info');
+            }
+            checkUser();
+        });
     </script>
 </body>
 </html>
