@@ -97,10 +97,10 @@
     <div class="card">
         <div class="nav-links">
             <a href="index.html">🏠 Dashboard</a>
+            <a href="pricing.html">💰 Pricing</a>
             <a href="progress.html">📈 Progress</a>
             <a href="projects.html">🚀 Projects</a>
             <a href="contact.html">✉️ Contact</a>
-            <a href="pricing.html">💰 Pricing</a>            
         </div>
 
         <h1>💰 Simple, Transparent Pricing</h1>
@@ -145,23 +145,22 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initApp()"></script>
+    <!-- Load Supabase SDK ONLY ONCE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script>
-        // Check if supabase already exists, don't redeclare
-        if (typeof supabase === 'undefined') {
-            var supabase = window.supabase;
-        }
-        // ===== REPLACE WITH YOUR SUPABASE CREDENTIALS =====
+        // ===== YOUR SUPABASE CREDENTIALS =====
         const SUPABASE_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdG5ub2NnZmpocmxvZmdiamRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2OTQ0MTUsImV4cCI6MjA5NjI3MDQxNX0.XAx-5LlSQsg_hxb4JqDzk5iLNMOW-FziSegWJhCsYis';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // ===== REPLACE WITH YOUR STRIPE PRICE ID =====
+        // ===== YOUR STRIPE PRICE ID =====
         const STRIPE_PRICE_ID = 'price_1TgL0SRu8RgSD6da4snS1ooB';
         
-        // ===== EDGE FUNCTION URL (YOUR DEPLOYED FUNCTION) =====
+        // ===== EDGE FUNCTION URL =====
         const EDGE_FUNCTION_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co/functions/v1/create-checkout';
+        
+        // Create Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         let currentUser = null;
 
@@ -181,8 +180,11 @@
                 showMessage('Please <a href="index.html" style="color: #1a73e8;">log in</a> to upgrade.', 'info');
                 upgradeBtn.disabled = true;
                 upgradeBtn.textContent = 'Login to Upgrade';
-            } else {
-                // Check if user is already premium
+                return;
+            }
+            
+            // Check if user is already premium
+            try {
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('is_premium')
@@ -197,9 +199,14 @@
                     upgradeBtn.disabled = false;
                     upgradeBtn.textContent = 'Upgrade Now';
                 }
+            } catch (err) {
+                console.log('Profile check error:', err);
+                upgradeBtn.disabled = false;
+                upgradeBtn.textContent = 'Upgrade Now';
             }
         }
 
+        // Handle upgrade button click
         document.getElementById('upgradeBtn').addEventListener('click', async () => {
             if (!currentUser) {
                 showMessage('Please log in first.', 'error');
@@ -243,8 +250,9 @@
             const params = new URLSearchParams(window.location.search);
             if (params.get('success') === 'true') {
                 showMessage('✅ Payment successful! Your account has been upgraded.', 'success');
-                document.getElementById('upgradeBtn').textContent = 'Already Premium';
-                document.getElementById('upgradeBtn').disabled = true;
+                const upgradeBtn = document.getElementById('upgradeBtn');
+                upgradeBtn.textContent = 'Already Premium';
+                upgradeBtn.disabled = true;
             } else if (params.get('canceled') === 'true') {
                 showMessage('Payment cancelled. No charges were made.', 'info');
             }
