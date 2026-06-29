@@ -145,119 +145,127 @@
         </div>
     </div>
 
-    <!-- Load Supabase SDK ONLY ONCE -->
+    <!-- Only ONE script tag for Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- Your custom JavaScript -->
     <script>
-        // ===== YOUR SUPABASE CREDENTIALS =====
-        const SUPABASE_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
-        
-        // ===== YOUR STRIPE PRICE ID =====
-        const STRIPE_PRICE_ID = 'price_YOUR_ACTUAL_PRICE_ID_HERE';
-        
-        // ===== EDGE FUNCTION URL =====
-        const EDGE_FUNCTION_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co/functions/v1/create-checkout';
-        
-        // Create Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        let currentUser = null;
-
-        function showMessage(text, type) {
-            const msgDiv = document.getElementById('statusMsg');
-            msgDiv.textContent = text;
-            msgDiv.className = `status-msg ${type}`;
-            msgDiv.style.display = 'block';
-        }
-
-        async function checkUser() {
-            const { data: { user } } = await supabase.auth.getUser();
-            currentUser = user;
-            const upgradeBtn = document.getElementById('upgradeBtn');
+        // Check if supabase is already loaded
+        if (typeof window.supabase !== 'undefined') {
+            // Your Supabase credentials
+            const SUPABASE_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdG5ub2NnZmpocmxvZmdiamRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2OTQ0MTUsImV4cCI6MjA5NjI3MDQxNX0.XAx-5LlSQsg_hxb4JqDzk5iLNMOW-FziSegWJhCsYis';
             
-            if (!user) {
-                showMessage('Please <a href="index.html" style="color: #1a73e8;">log in</a> to upgrade.', 'info');
-                upgradeBtn.disabled = true;
-                upgradeBtn.textContent = 'Login to Upgrade';
-                return;
+            // Your Stripe Price ID
+            const STRIPE_PRICE_ID = 'price_1TgL0SRu8RgSD6da4snS1ooB';
+            
+            // Edge Function URL
+            const EDGE_FUNCTION_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co/functions/v1/create-checkout';
+            
+            // Create Supabase client
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            let currentUser = null;
+
+            function showMessage(text, type) {
+                const msgDiv = document.getElementById('statusMsg');
+                msgDiv.textContent = text;
+                msgDiv.className = `status-msg ${type}`;
+                msgDiv.style.display = 'block';
             }
-            
-            // Check if user is already premium
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('is_premium')
-                    .eq('id', user.id)
-                    .single();
+
+            async function checkUser() {
+                const { data: { user } } = await supabase.auth.getUser();
+                currentUser = user;
+                const upgradeBtn = document.getElementById('upgradeBtn');
                 
-                if (!error && data?.is_premium) {
-                    showMessage('🎉 You are already a Premium member!', 'success');
-                    upgradeBtn.textContent = 'Already Premium';
+                if (!user) {
+                    showMessage('Please <a href="index.html" style="color: #1a73e8;">log in</a> to upgrade.', 'info');
                     upgradeBtn.disabled = true;
-                } else {
+                    upgradeBtn.textContent = 'Login to Upgrade';
+                    return;
+                }
+                
+                // Check if user is already premium
+                try {
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select('is_premium')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (!error && data?.is_premium) {
+                        showMessage('🎉 You are already a Premium member!', 'success');
+                        upgradeBtn.textContent = 'Already Premium';
+                        upgradeBtn.disabled = true;
+                    } else {
+                        upgradeBtn.disabled = false;
+                        upgradeBtn.textContent = 'Upgrade Now';
+                    }
+                } catch (err) {
+                    console.log('Profile check error:', err);
                     upgradeBtn.disabled = false;
                     upgradeBtn.textContent = 'Upgrade Now';
                 }
-            } catch (err) {
-                console.log('Profile check error:', err);
-                upgradeBtn.disabled = false;
-                upgradeBtn.textContent = 'Upgrade Now';
-            }
-        }
-
-        // Handle upgrade button click
-        document.getElementById('upgradeBtn').addEventListener('click', async () => {
-            if (!currentUser) {
-                showMessage('Please log in first.', 'error');
-                return;
             }
 
-            const upgradeBtn = document.getElementById('upgradeBtn');
-            upgradeBtn.disabled = true;
-            upgradeBtn.textContent = 'Processing...';
-
-            try {
-                const response = await fetch(EDGE_FUNCTION_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUser.id,
-                        email: currentUser.email,
-                        priceId: STRIPE_PRICE_ID,
-                        successUrl: window.location.origin + '/pricing.html?success=true',
-                        cancelUrl: window.location.origin + '/pricing.html?canceled=true'
-                    })
-                });
-
-                const data = await response.json();
-                if (data.error) throw new Error(data.error);
-                if (data.url) {
-                    window.location.href = data.url;
-                } else {
-                    throw new Error('No checkout URL returned');
+            // Handle upgrade button click
+            document.getElementById('upgradeBtn').addEventListener('click', async () => {
+                if (!currentUser) {
+                    showMessage('Please log in first.', 'error');
+                    return;
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                showMessage('Error: ' + error.message, 'error');
-                upgradeBtn.disabled = false;
-                upgradeBtn.textContent = 'Upgrade Now';
-            }
-        });
 
-        // Check for payment status in URL
-        document.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('success') === 'true') {
-                showMessage('✅ Payment successful! Your account has been upgraded.', 'success');
                 const upgradeBtn = document.getElementById('upgradeBtn');
-                upgradeBtn.textContent = 'Already Premium';
                 upgradeBtn.disabled = true;
-            } else if (params.get('canceled') === 'true') {
-                showMessage('Payment cancelled. No charges were made.', 'info');
-            }
-            checkUser();
-        });
+                upgradeBtn.textContent = 'Processing...';
+
+                try {
+                    const response = await fetch(EDGE_FUNCTION_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: currentUser.id,
+                            email: currentUser.email,
+                            priceId: STRIPE_PRICE_ID,
+                            successUrl: window.location.origin + '/pricing.html?success=true',
+                            cancelUrl: window.location.origin + '/pricing.html?canceled=true'
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+                    if (data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        throw new Error('No checkout URL returned');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showMessage('Error: ' + error.message, 'error');
+                    upgradeBtn.disabled = false;
+                    upgradeBtn.textContent = 'Upgrade Now';
+                }
+            });
+
+            // Check for payment status in URL
+            document.addEventListener('DOMContentLoaded', () => {
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('success') === 'true') {
+                    showMessage('✅ Payment successful! Your account has been upgraded.', 'success');
+                    const upgradeBtn = document.getElementById('upgradeBtn');
+                    upgradeBtn.textContent = 'Already Premium';
+                    upgradeBtn.disabled = true;
+                } else if (params.get('canceled') === 'true') {
+                    showMessage('Payment cancelled. No charges were made.', 'info');
+                }
+                checkUser();
+            });
+        } else {
+            console.error('Supabase SDK failed to load');
+            document.getElementById('statusMsg').textContent = 'Error: Supabase SDK not loaded. Please refresh.';
+            document.getElementById('statusMsg').className = 'status-msg error';
+        }
     </script>
 </body>
 </html>
