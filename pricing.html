@@ -97,10 +97,10 @@
     <div class="card">
         <div class="nav-links">
             <a href="index.html">🏠 Dashboard</a>
-            <a href="pricing.html">💰 Pricing</a>
             <a href="progress.html">📈 Progress</a>
             <a href="projects.html">🚀 Projects</a>
             <a href="contact.html">✉️ Contact</a>
+            <a href="pricing.html">💰 Pricing</a>            
         </div>
 
         <h1>💰 Simple, Transparent Pricing</h1>
@@ -145,8 +145,12 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initApp()"></script>
     <script>
+        // Check if supabase already exists, don't redeclare
+        if (typeof supabase === 'undefined') {
+            var supabase = window.supabase;
+        }
         // ===== REPLACE WITH YOUR SUPABASE CREDENTIALS =====
         const SUPABASE_URL = 'https://totnnocgfjhrlofgbjdr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdG5ub2NnZmpocmxvZmdiamRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2OTQ0MTUsImV4cCI6MjA5NjI3MDQxNX0.XAx-5LlSQsg_hxb4JqDzk5iLNMOW-FziSegWJhCsYis';
